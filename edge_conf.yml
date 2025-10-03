@@ -1,5 +1,5 @@
 api.port: 1323
-etcd.address: 192.168.122.31:2379
+etcd.address: 192.168.122.16:2379
 metrics.enabled: false
 scheduler.policy: "default"
 container.pool.memory: 2560
