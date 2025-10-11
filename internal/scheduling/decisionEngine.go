@@ -47,26 +47,20 @@ func canExecute(function *function.Function) bool {
 }
 
 // CalculateExpectedCost Calculates the expected cost of a scheduled request. It's used to check if the node can afford Cloud offloading
-func CalculateExpectedCost(r *scheduledRequest, isEdge bool) float64 {
+func CalculateExpectedCost(r *scheduledRequest) float64 {
 	fInfo, prs := engine.GetGrabber().GrabFunctionInfo(r.Fun.Name)
 	if !prs {
 		return 0
 	}
 
-	var cost float64
-	if isEdge {
-		cost = config.GetFloat(config.CLOUD_COST_FACTOR, 0.01) * fInfo.meanDuration[2] * (float64(r.Fun.MemoryMB) / 1024)
-	} else {
-		cost = config.GetFloat(config.EDGE_COST_FACTOR, 0.01) * fInfo.meanDuration[2] * (float64(r.Fun.MemoryMB) / 1024)
-	}
-	return cost
+	return config.GetFloat(config.CLOUD_COST_FACTOR, 0.01) * fInfo.meanDuration[2] * (float64(r.Fun.MemoryMB) / 1024)
 }
 
 func canAffordCloudOffloading(r *scheduledRequest) bool {
 	// Need to check if I can financially afford to offload to Cloud node
 	executionTime := time.Now().Sub(startTime).Seconds()
 	localBudget := config.GetFloat(config.BUDGET, 0.01)
-	meanExpense := (node.Resources.NodeExpenses + CalculateExpectedCost(r, false)) / executionTime * 3600
+	meanExpense := (node.Resources.NodeExpenses + CalculateExpectedCost(r)) / executionTime * 3600
 	//log.Println("localBudget: ", localBudget)
 	//log.Println("totalExpense: ", node.Resources.NodeExpenses/executionTime)
 	//log.Println("expectedExpense: ", meanExpense)
