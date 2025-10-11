@@ -100,6 +100,18 @@ type metricGrabberDQN struct {
 	m        map[string]*functionInfo
 }
 
+func (mg *metricGrabberDQN) InitMetricGrabber() {
+	// TODO Per ora sembra non servire
+}
+
+func (mg *metricGrabberDQN) Completed(r *scheduledRequest, offloaded int) {
+	requestChannel <- completedRequest{
+		scheduledRequest: r,
+		location:         offloaded,
+		dropped:          false,
+	}
+}
+
 /*
 Function that:
 - Handles the evaluation and calculation of the local, edge and cloud probabilities.
