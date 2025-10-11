@@ -67,10 +67,10 @@ func (m *Model) Predict(s State, actionFilter []bool) (int, error) {
 	/* MODEL */
 	result, err := m.Session.Run(
 		map[tf.Output]*tf.Tensor{
-			m.Graph.Operation("serving_default_keras_tensor").Output(0): inputTensor,
+			m.Graph.Operation("serving_default_state_input").Output(0): inputTensor,
 		},
 		[]tf.Output{
-			m.Graph.Operation("StatefulPartitionedCall_1").Output(0),
+			m.Graph.Operation("StatefulPartitionedCall").Output(0),
 		},
 		nil,
 	)
@@ -263,7 +263,7 @@ func (d *decisionEngineDQN) Completed(r *scheduledRequest, offloaded int) {
 
 func (d *decisionEngineDQN) GetGrabber() metricGrabber {
 	// VEDERE COSA DEVO FARCI
-	return nil
+	return d.mg
 }
 
 func canAffordEdgeOffloading(r *scheduledRequest) bool {
