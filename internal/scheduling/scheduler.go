@@ -26,7 +26,6 @@ var executionLogEnabled bool
 var offloadingClient *http.Client
 var policy Policy
 
-
 func Run(p Policy) {
 	policy = p
 	requests = make(chan *scheduledRequest, 500)
@@ -134,7 +133,7 @@ func SubmitRequest(r *function.Request) error {
 					Arrival: r.Arrival,
 					ExecReport: function.ExecutionReport{
 						HasBeenDropped: true,
-						SchedAction: action,
+						SchedAction:    action,
 					},
 					RequestQoS: function.RequestQoS{
 						ClassService: r.RequestQoS.ClassService,
@@ -223,6 +222,14 @@ func handleOffload(r *scheduledRequest, serverHost string, act action) {
 func tryCloudOffload(r *scheduledRequest) {
 	if canAffordCloudOffloading(r) {
 		handleCloudOffload(r)
+	} else {
+		dropRequest(r)
+	}
+}
+
+func tryEdgeOffload(r *scheduledRequest, serverHost string) {
+	if canAffordEdgeOffloading(r) {
+		handleEdgeOffload(r, serverHost)
 	} else {
 		dropRequest(r)
 	}

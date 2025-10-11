@@ -3,13 +3,14 @@ package scheduling
 import (
 	"log"
 	"sort"
-    "sync"
+	"sync"
+	"time"
 
-    // tg "github.com/galeone/tfgo"
+	// tg "github.com/galeone/tfgo"
 	tf "github.com/galeone/tensorflow/tensorflow/go"
 
-	"github.com/grussorusso/serverledge/internal/node"
 	"github.com/grussorusso/serverledge/internal/config"
+	"github.com/grussorusso/serverledge/internal/node"
 )
 
 type decisionEngineDQN struct {
@@ -17,105 +18,102 @@ type decisionEngineDQN struct {
 }
 
 type Model struct {
-    Session *tf.Session
-    Graph   *tf.Graph
+	Session *tf.Session
+	Graph   *tf.Graph
 }
 
 var dqnModel *Model
 
 type State struct {
-    PercAvailableLocalMemory float32
-    CanExecuteOnEdge         float32
-    FunctionId               []float32
-    ClassId                  []float32
-    HasBeenOffloaded         float32 	// == !CanDoOffloading (do not remove the ! cause the NN has been trained with has_been_offloaded)
+	PercAvailableLocalMemory float32
+	CanExecuteOnEdge         float32
+	FunctionId               []float32
+	ClassId                  []float32
+	HasBeenOffloaded         float32 // == !CanDoOffloading (do not remove the ! cause the NN has been trained with has_been_offloaded)
 }
 
 var stateMutex sync.Mutex
 
-
 func LoadModel(modelPath string) *Model {
-    dqnModel, err := tf.LoadSavedModel(modelPath, []string{"serve"}, nil)
-    if err != nil {
-        return nil
-    }
-    return &Model{
-        Session: dqnModel.Session,
-        Graph:   dqnModel.Graph,
-    }
-    return nil
+	dqnModel, err := tf.LoadSavedModel(modelPath, []string{"serve"}, nil)
+	if err != nil {
+		return nil
+	}
+	return &Model{
+		Session: dqnModel.Session,
+		Graph:   dqnModel.Graph,
+	}
+	return nil
 }
-
 
 func (m *Model) Predict(s State, actionFilter []bool) (int, error) {
-    state := []float32{
-        s.PercAvailableLocalMemory,
-        s.CanExecuteOnEdge,
-    }
-    state = append(state, s.FunctionId...)
-    state = append(state, s.ClassId...)
-    state = append(state, s.HasBeenOffloaded)
+	state := []float32{
+		s.PercAvailableLocalMemory,
+		s.CanExecuteOnEdge,
+	}
+	state = append(state, s.FunctionId...)
+	state = append(state, s.ClassId...)
+	state = append(state, s.HasBeenOffloaded)
 
-    inputTensor, err := tf.NewTensor([][]float32{state})
-    if err != nil {
-        return 0, err
-    }
+	inputTensor, err := tf.NewTensor([][]float32{state})
+	if err != nil {
+		return 0, err
+	}
 
-    /*
-    	saved_model_cli show --dir tf_model --all 
-    	saved_model_cli show --dir tf_model --tag_set serve --signature_def serving_default
-    */
-    /* MODEL */
-    result, err := m.Session.Run(
-        map[tf.Output]*tf.Tensor{
-            m.Graph.Operation("serving_default_keras_tensor").Output(0): inputTensor,
-        },
-        []tf.Output{
-            m.Graph.Operation("StatefulPartitionedCall_1").Output(0),
-        },
-        nil,
-    )
-    /* TF_MODEL */
-    // result, err := m.Session.Run(
-    //     map[tf.Output]*tf.Tensor{
-    //         m.Graph.Operation("serving_default_inputs").Output(0): inputTensor,
-    //     },
-    //     []tf.Output{
-    //         m.Graph.Operation("StatefulPartitionedCall").Output(0),
-    //     },
-    //     nil,
-    // )
-    if err != nil {
-        return 0, err
-    }
+	/*
+		saved_model_cli show --dir tf_model --all
+		saved_model_cli show --dir tf_model --tag_set serve --signature_def serving_default
+	*/
+	/* MODEL */
+	result, err := m.Session.Run(
+		map[tf.Output]*tf.Tensor{
+			m.Graph.Operation("serving_default_keras_tensor").Output(0): inputTensor,
+		},
+		[]tf.Output{
+			m.Graph.Operation("StatefulPartitionedCall_1").Output(0),
+		},
+		nil,
+	)
+	/* TF_MODEL */
+	// result, err := m.Session.Run(
+	//     map[tf.Output]*tf.Tensor{
+	//         m.Graph.Operation("serving_default_inputs").Output(0): inputTensor,
+	//     },
+	//     []tf.Output{
+	//         m.Graph.Operation("StatefulPartitionedCall").Output(0),
+	//     },
+	//     nil,
+	// )
+	if err != nil {
+		return 0, err
+	}
 
-    // create a slice with predictions
-    prediction := result[0].Value().([][]float32)[0]
+	// create a slice with predictions
+	prediction := result[0].Value().([][]float32)[0]
 
-    // log.Println("[DE_DQN] Predictions-pre: ", prediction)
+	// log.Println("[DE_DQN] Predictions-pre: ", prediction)
 
-    // filter the actions
-    for i, allowed := range actionFilter {
-        if !allowed {
-            prediction[i] = 0.0
-        }
-    }
+	// filter the actions
+	for i, allowed := range actionFilter {
+		if !allowed {
+			prediction[i] = 0.0
+		}
+	}
 
-    // log.Println("[DE_DQN] Predictions-post:", prediction)
+	// log.Println("[DE_DQN] Predictions-post:", prediction)
 
-    // return the index of highest value
-    action := 0
-    maxValue := float32(-1)
-    for i, value := range prediction {
-        if value > maxValue {
-            action = i
-            maxValue = value
-        }
-    }
-    return action, nil
-    // return 3, nil
+	// return the index of highest value
+	action := 0
+	maxValue := float32(-1)
+	for i, value := range prediction {
+		if value > maxValue {
+			action = i
+			maxValue = value
+		}
+	}
+	return action, nil
+	// return 3, nil
 }
-
 
 func oneHotEncoding(list []string, str string) []float32 {
 	indexMap := make(map[string]int)
@@ -129,13 +127,12 @@ func oneHotEncoding(list []string, str string) []float32 {
 	return oneHot
 }
 
-
 func getState(r *scheduledRequest) State {
 	log.Println("")
-	log.Println("[DE_DQN]",r.Fun.Name, r.ClassService.Name)
-	log.Println("[DE_DQN] Warm pool:",node.WarmStatus())
-	log.Println("[DE_DQN] Busy pool:",node.BusyStatus())
-	percAvailableLocalMemory := float32(node.Resources.MaxMemMB - node.Resources.BusyMemMB) / float32(node.Resources.MaxMemMB)
+	log.Println("[DE_DQN]", r.Fun.Name, r.ClassService.Name)
+	log.Println("[DE_DQN] Warm pool:", node.WarmStatus())
+	log.Println("[DE_DQN] Busy pool:", node.BusyStatus())
+	percAvailableLocalMemory := float32(node.Resources.MaxMemMB-node.Resources.BusyMemMB) / float32(node.Resources.MaxMemMB)
 	log.Printf("[DE_DQN] AvailableMemMB = %f", float32(node.Resources.AvailableMemMB))
 	log.Printf("[DE_DQN] BusyMemMB      = %f", float32(node.Resources.BusyMemMB))
 	log.Printf("[DE_DQN] WarmMemory     = %f", float32(node.CountWarmMemory()))
@@ -155,32 +152,31 @@ func getState(r *scheduledRequest) State {
 		log.Printf(message)
 		panic(err)
 	}
-	sort.Strings(functions)	// need to sort cause Go mixes maps and NN needs functionId in order
+	sort.Strings(functions) // need to sort cause Go mixes maps and NN needs functionId in order
 	functionId := oneHotEncoding(functions, r.Fun.Name)
 	// log.Printf("[DE_DQN] functionId = %v -> %v", functions, functionId)
 
 	classList := make([]string, 0, len(Classes))
-    for key := range Classes {
-        classList = append(classList, key)
-    }
-	sort.Strings(classList)	// need to sort cause Go mixes maps and NN needs classId in order
+	for key := range Classes {
+		classList = append(classList, key)
+	}
+	sort.Strings(classList) // need to sort cause Go mixes maps and NN needs classId in order
 	classId := oneHotEncoding(classList, r.ClassService.Name)
 	// log.Printf("[DE_DQN] classId = %v -> %v", classList, classId)
 
 	state := State{
-        PercAvailableLocalMemory: percAvailableLocalMemory,
-        CanExecuteOnEdge:         canExecuteOnEdge,
-        FunctionId:               functionId,
-        ClassId:                  classId,
-        HasBeenOffloaded:         0.0,
-    }
-    if !r.CanDoOffloading {
-    	state.HasBeenOffloaded = 1.0
-    }
-    log.Printf("[DE_DQN] State = %+v", state)
+		PercAvailableLocalMemory: percAvailableLocalMemory,
+		CanExecuteOnEdge:         canExecuteOnEdge,
+		FunctionId:               functionId,
+		ClassId:                  classId,
+		HasBeenOffloaded:         0.0,
+	}
+	if !r.CanDoOffloading {
+		state.HasBeenOffloaded = 1.0
+	}
+	log.Printf("[DE_DQN] State = %+v", state)
 	return state
 }
-
 
 func actionFilter(state State, r *scheduledRequest) []bool {
 	actionFilter := []bool{true, true, true, true}
@@ -201,7 +197,6 @@ func actionFilter(state State, r *scheduledRequest) []bool {
 	return actionFilter
 }
 
-
 func (d *decisionEngineDQN) Decide(r *scheduledRequest) int {
 	stateMutex.Lock()
 	defer stateMutex.Unlock()
@@ -214,63 +209,72 @@ func (d *decisionEngineDQN) Decide(r *scheduledRequest) int {
 	// check how many actions can be taken
 	numActionsAllowed := 0
 	action := 0
-    for i, value := range actionFilter {
-        if value {
-            numActionsAllowed++
-            action = i
-        }
-    }
-    // if there is more than 1 let the model choose
-    if numActionsAllowed > 1 {
-    	var err error
-    	action, err = dqnModel.Predict(state, actionFilter)
-	    if err != nil {
-	        log.Println("[DE_DQN] Error predicting:", err)
-	        return -1
-	    }
-    }
+	for i, value := range actionFilter {
+		if value {
+			numActionsAllowed++
+			action = i
+		}
+	}
+	// if there is more than 1 let the model choose
+	if numActionsAllowed > 1 {
+		var err error
+		action, err = dqnModel.Predict(state, actionFilter)
+		if err != nil {
+			log.Println("[DE_DQN] Error predicting:", err)
+			return -1
+		}
+	}
 
-	log.Println("[DE_DQN] Filter:",actionFilter,"-> Action =", action)
+	log.Println("[DE_DQN] Filter:", actionFilter, "-> Action =", action)
 	// log.Println("[DE_DQN] Action =", action)
 
-    // map simulator action to Serverledge
-    //  - simulator:   LOCAL(0)-CLOUD(1)-EDGE(2)-DROP(3)
-    //  - Serverledge: DROP(0)-LOCAL(1)-CLOUD(2)-EDGE(3)
-    action = (action + 1) % 4
+	// map simulator action to Serverledge
+	//  - simulator:   LOCAL(0)-CLOUD(1)-EDGE(2)-DROP(3)
+	//  - Serverledge: DROP(0)-LOCAL(1)-CLOUD(2)-EDGE(3)
+	action = (action + 1) % 4
 
 	if action == DROP_REQUEST {
-		d.mg.addStats(r,true,false)
+		d.mg.addStats(r, true, false)
 	}
 	return action
 }
 
-
 func (d *decisionEngineDQN) InitDecisionEngine() {
 	// model initialization
 	modelPath := config.GetString(config.DQN_MODEL_PATH, "dqn_models/model")
-    dqnModel = LoadModel(modelPath)
-    if dqnModel == nil {
-        log.Println("[DE_DQN] Error loading model")
-        return
-    }
-    d.mg = InitMG()
+	dqnModel = LoadModel(modelPath)
+	if dqnModel == nil {
+		log.Println("[DE_DQN] Error loading model")
+		return
+	}
+	d.mg = InitMG()
 }
-
 
 // VEDERE SE SERVE, IL MODELLO VA CHIUSO SOLO QUANDO SPEGNI TUTTO, MA DOVE?
 func (d *decisionEngineDQN) CloseSession() {
 	dqnModel.Session.Close()
 }
 
-
 func (d *decisionEngineDQN) Completed(r *scheduledRequest, offloaded int) {
 	// log.Println("[DE_DQN] COMPLETED: in decisionEngineDQN")
 	offloadDrop := offloaded != 0
-	d.mg.addStats(r,false,offloadDrop)
+	d.mg.addStats(r, false, offloadDrop)
 }
-
 
 func (d *decisionEngineDQN) GetGrabber() metricGrabber {
 	// VEDERE COSA DEVO FARCI
 	return nil
+}
+
+func canAffordEdgeOffloading(r *scheduledRequest) bool {
+	// Need to check if I can financially afford to offload to Edge node (energy cost)
+	executionTime := time.Now().Sub(startTime).Seconds()
+	localBudget := config.GetFloat(config.BUDGET, 0.01)
+	meanExpense := (node.Resources.NodeExpenses + CalculateExpectedCost(r, true)) / executionTime * 3600
+
+	if meanExpense > localBudget {
+		return false
+	} else {
+		return true
+	}
 }

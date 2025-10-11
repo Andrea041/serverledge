@@ -1,8 +1,9 @@
 package scheduling
 
 import (
-	"github.com/grussorusso/serverledge/internal/node"
 	"log"
+
+	"github.com/grussorusso/serverledge/internal/node"
 )
 
 type DQNPolicy struct {
@@ -38,7 +39,7 @@ func (p *DQNPolicy) OnArrival(r *scheduledRequest) {
 			// panic("ERRORE (dqnPolicy): quì non dovrebbe entrare perchè il filtro dovrebbe impedirglielo!")
 		}
 	} else if dec == CLOUD_OFFLOAD_REQUEST {
-		handleCloudOffload(r)
+		tryCloudOffload(r)
 	} else if dec == EDGE_OFFLOAD_REQUEST {
 		url := pickEdgeNodeForOffloading(r)
 		if url == "" {
@@ -46,7 +47,7 @@ func (p *DQNPolicy) OnArrival(r *scheduledRequest) {
 			dropRequest(r)
 			// panic("ERRORE (dqnPolicy): quì non dovrebbe entrare perchè se sceglie OFFLOADED_EDGE deve poterlo fare!")
 		}
-		handleEdgeOffload(r, url)
+		tryEdgeOffload(r, url)
 	} else if dec == DROP_REQUEST {
 		dropRequest(r)
 	} else {
