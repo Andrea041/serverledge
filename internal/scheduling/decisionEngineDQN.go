@@ -262,7 +262,6 @@ func (d *decisionEngineDQN) Completed(r *scheduledRequest, offloaded int) {
 }
 
 func (d *decisionEngineDQN) GetGrabber() metricGrabber {
-	// VEDERE COSA DEVO FARCI
 	return d.mg
 }
 

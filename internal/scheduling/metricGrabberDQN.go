@@ -255,9 +255,7 @@ func (mg *metricGrabberDQN) handler() {
 
 func (mg *metricGrabberDQN) GrabFunctionInfo(functionName string) (*functionInfo, bool) {
 	fInfo, prs := mg.m[functionName]
-	if !prs {
-		log.Printf("Function with name %s is not present in cache.", functionName)
-	}
+
 	return fInfo, prs
 }
 
