@@ -8,6 +8,16 @@ type decisionEngineMem struct {
 	g *metricGrabberMem
 }
 
+func (d *decisionEngineMem) CanAffordCloudOffloading(r *scheduledRequest) bool {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *decisionEngineMem) CalculateExpectedCost(r *scheduledRequest) float64 {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (d *decisionEngineMem) Completed(r *scheduledRequest, offloaded int) {
 	d.g.Completed(r, offloaded)
 }

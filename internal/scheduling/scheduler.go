@@ -220,7 +220,7 @@ func handleOffload(r *scheduledRequest, serverHost string, act action) {
 }
 
 func tryCloudOffload(r *scheduledRequest) {
-	if canAffordCloudOffloading(r) {
+	if canAffordCloudOffloading(r, false) {
 		handleCloudOffload(r)
 	} else {
 		dropRequest(r)

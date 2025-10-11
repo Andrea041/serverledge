@@ -273,7 +273,7 @@ func CalculateExpectedCostDQN(r *scheduledRequest, isEdge bool) float64 {
 	}
 
 	var cost float64
-	if isEdge {
+	if !isEdge {
 		cost = config.GetFloat(config.CLOUD_COST_FACTOR, 0.01) * fInfo.meanDuration[2] * (float64(r.Fun.MemoryMB) / 1024)
 	} else {
 		cost = config.GetFloat(config.EDGE_COST_FACTOR, 0.01) * fInfo.meanDuration[2] * (float64(r.Fun.MemoryMB) / 1024)

@@ -10,6 +10,16 @@ type decisionEngineFlux struct {
 	g *metricGrabberFlux
 }
 
+func (d *decisionEngineFlux) CanAffordCloudOffloading(r *scheduledRequest) bool {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *decisionEngineFlux) CalculateExpectedCost(r *scheduledRequest) float64 {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (d *decisionEngineFlux) Decide(r *scheduledRequest) int {
 	name := r.Fun.Name
 	class := r.ClassService
@@ -98,7 +108,7 @@ func (d *decisionEngineFlux) Decide(r *scheduledRequest) int {
 		}
 	}
 
-	if !canAffordCloudOffloading(r) {
+	if !canAffordCloudOffloading(r, false) {
 		pC = 0
 		if pL == 0 && pE == 0 && pD == 0 {
 			pL = 0

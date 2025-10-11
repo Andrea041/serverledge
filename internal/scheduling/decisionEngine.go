@@ -56,14 +56,18 @@ func CalculateExpectedCost(r *scheduledRequest) float64 {
 	return config.GetFloat(config.CLOUD_COST_FACTOR, 0.01) * fInfo.meanDuration[2] * (float64(r.Fun.MemoryMB) / 1024)
 }
 
-func canAffordCloudOffloading(r *scheduledRequest) bool {
+func canAffordCloudOffloading(r *scheduledRequest, isDQN bool) bool {
 	// Need to check if I can financially afford to offload to Cloud node
 	executionTime := time.Now().Sub(startTime).Seconds()
 	localBudget := config.GetFloat(config.BUDGET, 0.01)
-	meanExpense := (node.Resources.NodeExpenses + CalculateExpectedCost(r)) / executionTime * 3600
-	//log.Println("localBudget: ", localBudget)
-	//log.Println("totalExpense: ", node.Resources.NodeExpenses/executionTime)
-	//log.Println("expectedExpense: ", meanExpense)
+
+	var meanExpense float64
+	if isDQN {
+		meanExpense = (node.Resources.NodeExpenses + CalculateExpectedCostDQN(r, false)) / executionTime * 3600
+	} else {
+		meanExpense = (node.Resources.NodeExpenses + CalculateExpectedCost(r)) / executionTime * 3600
+	}
+
 	if meanExpense > localBudget {
 		//log.Printf("Cannot afford Cloud - dropping request")
 		return false

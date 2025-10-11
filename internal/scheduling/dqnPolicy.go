@@ -39,7 +39,7 @@ func (p *DQNPolicy) OnArrival(r *scheduledRequest) {
 			// panic("ERRORE (dqnPolicy): quì non dovrebbe entrare perchè il filtro dovrebbe impedirglielo!")
 		}
 	} else if dec == CLOUD_OFFLOAD_REQUEST {
-		tryCloudOffload(r)
+		tryCloudOffloadDQN(r)
 	} else if dec == EDGE_OFFLOAD_REQUEST {
 		url := pickEdgeNodeForOffloading(r)
 		if url == "" {
@@ -52,5 +52,13 @@ func (p *DQNPolicy) OnArrival(r *scheduledRequest) {
 		dropRequest(r)
 	} else {
 		panic("ERRORE (dqnPolicy): è entrato nell'else (quindi -1 in decisionEngineDQN)!")
+	}
+}
+
+func tryCloudOffloadDQN(r *scheduledRequest) {
+	if canAffordCloudOffloading(r, true) {
+		handleCloudOffload(r)
+	} else {
+		dropRequest(r)
 	}
 }
