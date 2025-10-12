@@ -273,18 +273,18 @@ func CalculateExpectedCostDQN(r *scheduledRequest, isEdge bool) float64 {
 
 	var cost float64
 	if !isEdge {
-		cost = config.GetFloat(config.CLOUD_COST_FACTOR, 0.01) * fInfo.meanDuration[2] * (float64(r.Fun.MemoryMB) / 1024)
+		cost = config.GetFloat(config.CLOUD_COST_FACTOR, 0.01) * fInfo.meanDuration[2] / 3600 * (float64(r.Fun.MemoryMB) / 1024)
 	} else {
-		cost = config.GetFloat(config.EDGE_COST_FACTOR, 0.01) * fInfo.meanDuration[2] * (float64(r.Fun.MemoryMB) / 1024)
+		cost = config.GetFloat(config.EDGE_COST_FACTOR, 0.01) * fInfo.meanDuration[2] / 3600 * (float64(r.Fun.MemoryMB) / 1024)
 	}
 	return cost
 }
 
 func canAffordEdgeOffloading(r *scheduledRequest) bool {
 	// Need to check if I can financially afford to offload to Edge node (energy cost)
-	executionTime := time.Now().Sub(startTime).Seconds()
+	executionTime := time.Now().Sub(startTime).Hours()
 	localBudget := config.GetFloat(config.BUDGET, 0.01)
-	meanExpense := (node.Resources.NodeExpenses + CalculateExpectedCostDQN(r, true)) / executionTime * 3600
+	meanExpense := (node.Resources.NodeExpenses + CalculateExpectedCostDQN(r, true)) / executionTime
 
 	if meanExpense > localBudget {
 		return false

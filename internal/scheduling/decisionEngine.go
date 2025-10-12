@@ -63,7 +63,7 @@ func canAffordCloudOffloading(r *scheduledRequest, isDQN bool) bool {
 
 	var meanExpense float64
 	if isDQN {
-		meanExpense = (node.Resources.NodeExpenses + CalculateExpectedCostDQN(r, false)) / executionTime * 3600
+		meanExpense = (node.Resources.NodeExpenses + CalculateExpectedCostDQN(r, false)) / executionTime / 3600
 	} else {
 		meanExpense = (node.Resources.NodeExpenses + CalculateExpectedCost(r)) / executionTime * 3600
 	}
