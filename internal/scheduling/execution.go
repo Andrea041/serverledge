@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/grussorusso/serverledge/internal/config"
 	"github.com/grussorusso/serverledge/internal/container"
 	"github.com/grussorusso/serverledge/internal/executor"
 )
@@ -49,7 +50,7 @@ func Execute(contID container.ContainerID, r *scheduledRequest) error {
 	r.ExecReport.Result = response.Result
 	r.ExecReport.Duration = time.Now().Sub(t0).Seconds() - invocationWait.Seconds()
 	r.ExecReport.ResponseTime = time.Now().Sub(r.Arrival).Seconds()
-	r.ExecReport.Cost = 0
+	r.ExecReport.Cost = config.GetFloat(config.EDGE_COST_FACTOR, 0.01)
 
 	// initializing containers may require invocation retries, adding
 	// latency
