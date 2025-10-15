@@ -33,7 +33,7 @@ func (p *DQNPolicy) OnArrival(r *scheduledRequest) {
 		containerID, err := node.AcquireWarmContainer(r.Fun)
 		if err == nil {
 			log.Printf("Using a warm container for: %v", r)
-			execLocally(r, containerID, true)
+			execLocallyWithBudget(r, containerID, true)
 		} else if !handleColdStart(r) {
 			log.Printf("No warm containers for: %v - COLD START", r)
 			// panic("ERRORE (dqnPolicy): quì non dovrebbe entrare perchè il filtro dovrebbe impedirglielo!")

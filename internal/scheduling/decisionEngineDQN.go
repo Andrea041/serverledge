@@ -8,6 +8,7 @@ import (
 
 	// tg "github.com/galeone/tfgo"
 	tf "github.com/galeone/tensorflow/tensorflow/go"
+	"github.com/grussorusso/serverledge/internal/container"
 
 	"github.com/grussorusso/serverledge/internal/config"
 	"github.com/grussorusso/serverledge/internal/node"
@@ -291,4 +292,22 @@ func canAffordEdgeOffloading(r *scheduledRequest) bool {
 	} else {
 		return true
 	}
+}
+
+func execLocallyWithBudget(r *scheduledRequest, c container.ContainerID, warmStart bool) {
+	executionTime := time.Now().Sub(startTime).Hours()
+	localBudget := config.GetFloat(config.BUDGET, 0.01)
+	// Posso mettere true all'Edge perchè il costo di un'esecuzione locale dal punto di vista energetico assumo essere lo stesso
+	meanExpense := (node.Resources.NodeExpenses + CalculateExpectedCostDQN(r, true)) / executionTime
+
+	if meanExpense > localBudget {
+		dropRequest(r)
+	}
+
+	initTime := time.Now().Sub(r.Arrival).Seconds()
+	r.ExecReport.InitTime = initTime
+	r.ExecReport.IsWarmStart = warmStart
+
+	decision := schedDecision{action: EXEC_LOCAL, contID: c}
+	r.decisionChannel <- decision
 }

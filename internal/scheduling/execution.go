@@ -7,6 +7,7 @@ import (
 	"github.com/grussorusso/serverledge/internal/config"
 	"github.com/grussorusso/serverledge/internal/container"
 	"github.com/grussorusso/serverledge/internal/executor"
+	"github.com/grussorusso/serverledge/internal/node"
 )
 
 const HANDLER_DIR = "/app"
@@ -50,7 +51,8 @@ func Execute(contID container.ContainerID, r *scheduledRequest) error {
 	r.ExecReport.Result = response.Result
 	r.ExecReport.Duration = time.Now().Sub(t0).Seconds() - invocationWait.Seconds()
 	r.ExecReport.ResponseTime = time.Now().Sub(r.Arrival).Seconds()
-	r.ExecReport.Cost = config.GetFloat(config.EDGE_COST_FACTOR, 0.01)
+	r.ExecReport.Cost = config.GetFloat(config.EDGE_COST_FACTOR, 0.01) * r.ExecReport.Duration / 3600 * (float64(r.Fun.MemoryMB) / 1024)
+	node.Resources.NodeExpenses += r.ExecReport.Cost
 
 	// initializing containers may require invocation retries, adding
 	// latency

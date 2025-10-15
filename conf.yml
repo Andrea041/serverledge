@@ -12,5 +12,5 @@ dqn.store.stats.every: 3600
 default.stats: true
 registry.nearby.interval: 1
 registry.monitoring.interval: 1
-scheduler.cloud.cost: 0.09005
-scheduler.edge.cost: 0.0189
+scheduler.cloud.cost: 0.10355
+scheduler.edge.cost: 0.0216
