@@ -154,7 +154,6 @@ func main() {
 	}
 
 	startAPIServer(e)
-
 }
 
 func createSchedulingPolicy() scheduling.Policy {

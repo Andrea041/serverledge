@@ -4,29 +4,43 @@ import threading
 import time
 import os
 
-IP = "192.168.122.31"
+IP = "192.168.122.13"
 PORT = 1323
 
-seed_value = 12345
-np.random.seed(seed_value)
-random.seed(seed_value)
+np.random.seed()
+random.seed()
 
-func_to_list = {"f1":[], "f2":[], "f3":[], "f4":[], "f5":[]}
+func_to_list = {"f1":[], "f2":[], "f3":[], "f4":[]}
+
+# --- CLASSI: pesi casuali, normalizzati ---
+arrival_weights = np.random.dirichlet(np.ones(4), size=1)[0]
 
 classes = [
-    {"name": "standard", "arrival_weight": 0.7},
-    {"name": "critical-1", "arrival_weight": 0.1},
-    {"name": "critical-2", "arrival_weight": 0.1},
-    {"name": "batch", "arrival_weight": 0.1}
+    {"name": "standard",   "arrival_weight": arrival_weights[0]},
+    {"name": "critical-1", "arrival_weight": arrival_weights[1]},
+    {"name": "critical-2", "arrival_weight": arrival_weights[2]},
+    {"name": "batch",      "arrival_weight": arrival_weights[3]},
 ]
 
-functions = [
-    {"name": "f1", "rate": 0.8, "param": 8100},
-    {"name": "f2", "rate": 1.6, "param": 6000},
-    {"name": "f3", "rate": 4.2, "param": 7200},
-    {"name": "f4", "rate": 0.6, "param": 6550},
-    {"name": "f5", "rate": 1.4, "param": 8500}
-]
+# Rate varia tra 1 e 5, param tra 6000 e 9000
+functions = []
+for fname in ["f1", "f2", "f3", "f4"]:
+    func = {
+        "name": fname,
+        "rate": round(random.uniform(1.0, 4.0), 2),
+        "param": 0
+    }
+    functions.append(func)
+
+# --- STAMPA CONFIGURAZIONE CORRENTE ---
+print("\n=== PARAMETRI SIMULAZIONE ===")
+print("Classi (pesi di arrivo):")
+for c in classes:
+    print(f"  {c['name']}: {c['arrival_weight']:.3f}")
+print("\nFunzioni:")
+for f in functions:
+    print(f"  {f['name']}: rate={f['rate']}")
+print("===============================\n")
 
 weights = [cls['arrival_weight'] for cls in classes]
 cumulative_weights = np.cumsum(weights)
@@ -51,16 +65,18 @@ class ArrivalGenerator(threading.Thread):
         arrivals = generate_poisson_arrivals(self.function['rate'], self.duration)
         for arrival_time in arrivals:
             class_name = select_class()
+
+            param = random.randint(6000, 9000)
         
-            func_to_list[self.function['name']].append((arrival_time, self.function['name'], self.function['param'], class_name))
+            func_to_list[self.function['name']].append((arrival_time, self.function['name'], param, class_name))
 
 
 def invoke_function(function_name, param, class_name):
-    command = f"bin/serverledge-cli invoke -H {IP} -P {PORT} -f {function_name} -c \"{class_name}\" -p \"n:{param}\""
+    command = f"../bin/serverledge-cli invoke -H {IP} -P {PORT} -f {function_name} -c \"{class_name}\" -p \"n:{param}\""
     os.system(command)
 
 
-duration = 3700
+duration = 3600
 
 threads = []
 for func in functions:

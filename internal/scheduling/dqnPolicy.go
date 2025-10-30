@@ -43,7 +43,7 @@ func (p *DQNPolicy) OnArrival(r *scheduledRequest) {
 	} else if dec == EDGE_OFFLOAD_REQUEST {
 		url := pickEdgeNodeForOffloading(r)
 		if url == "" {
-			// può succedere per probllemi di aggiornamento tra nodi
+			// può succedere per problemi di aggiornamento tra nodi
 			dropRequest(r)
 			// panic("ERRORE (dqnPolicy): quì non dovrebbe entrare perchè se sceglie OFFLOADED_EDGE deve poterlo fare!")
 		}

@@ -1,4 +1,4 @@
 #!/bin/sh
-docker stop Etcd-server
+docker stop etcd-server
 docker stop InfluxDb
 # docker stop Solver
